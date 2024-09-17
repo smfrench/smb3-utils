@@ -588,6 +588,20 @@ actimeo=arg
   integer that can hold values between 0 and a maximum value of 2^30 \*
   HZ (frequency of timer interrupt) setting.
 
+acdirmax=arg
+  The maximum time (in seconds) that the CIFS client caches metadata for
+  directories only. This parameter takes precedence over ``actimeo``.
+
+  By default, ``acdirmax`` is set to 1 second and can hold values between 0 and
+  a maximum value of 2^30 \* HZ.
+
+acregmax=arg
+  The maximum time (in seconds) that the CIFS client caches metadata for files
+  only. This parameter takes precedence over ``actimeo``.
+
+  By default, ``acdirmax`` is set to 1 second and can hold values between 0 and
+  a maximum value of 2^30 \* HZ.
+
 noposixpaths
   If unix extensions are enabled on a share, then the client will
   typically allow filenames to include any character besides '/' in a
