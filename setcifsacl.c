@@ -38,6 +38,7 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include <endian.h>
 #include <string.h>
 #include <getopt.h>
 #include <stdint.h>
@@ -48,10 +49,12 @@
 #include <errno.h>
 #include <limits.h>
 #include <ctype.h>
+#include <linux/limits.h>
 #include <sys/xattr.h>
 
 #include "cifsacl.h"
 #include "idmap_plugin.h"
+#include <assert.h>
 
 enum setcifsacl_actions {
 	ActUnknown = -1,
@@ -332,6 +335,7 @@ copy_sec_desc_with_sid(const struct cifs_ntsd *pntsd, struct cifs_ntsd *pnntsd,
 	bufsize = size;
 
 	/* set the pointers for source sids */
+	assert(maction == ActSetOwner || maction == ActSetGroup);
 	if (maction == ActSetOwner) {
 		owner_sid_ptr = sid;
 		group_sid_ptr = (struct cifs_sid *)((char *)pntsd + gsidoffset);

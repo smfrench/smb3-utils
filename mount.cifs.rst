@@ -321,11 +321,12 @@ soft
 noacl
   Do not allow POSIX ACL operations even if server would support them.
 
-  The CIFS client can get and set POSIX ACLs (getfacl, setfacl) to Samba
-  servers version 3.0.10 and later. Setting POSIX ACLs requires enabling
-  both ``CIFS_XATTR`` and then ``CIFS_POSIX`` support in the CIFS
-  configuration options when building the cifs module. POSIX ACL support
-  can be disabled on a per mount basis by specifying ``noacl`` on mount.
+  The CIFS client can get and set POSIX ACLs (getfacl, setfacl) to
+  Samba servers version 3.0.10 and later. Setting POSIX ACLs requires
+  enabling both ``CONFIG_CIFS_XATTR`` and then ``CONFIG_CIFS_POSIX``
+  support in the CIFS configuration options when building the cifs
+  module. POSIX ACL support can be disabled on a per mount basis by
+  specifying ``noacl`` on mount.
 
 cifsacl
   This option is used to map CIFS/NTFS ACLs to/from Linux permission
@@ -588,6 +589,42 @@ actimeo=arg
   integer that can hold values between 0 and a maximum value of 2^30 \*
   HZ (frequency of timer interrupt) setting.
 
+acregmax=arg
+  The maximum time (in seconds) that the CIFS client caches attributes of a
+  regular file before it requests fresh attribute information from a server.
+  If this option is not specified, then acregmax value will be set to ``actimeo``
+  value, see ``actimeo`` for more details.
+
+acdirmax=arg
+  The maximum time (in seconds) that the CIFS client caches attributes of a
+  directory before it requests fresh attribute information from a server.
+  If this option is not specified, then acdirmax value will be set to ``actimeo``
+  value, see ``actimeo`` for more details.
+
+multichannel
+  This option enables multichannel feature. Multichannel is an SMB3 protocol
+  feature that allows client to establish multiple transport connections to an
+  SMB server and bind them into a single authenticated SMB session. This feature
+  enhances fault tolerance and increases throughput by distributing traffic
+  across several connections. With this mount option default is to use two
+  channels if the server supports multichannel. The ``max_channels`` parameter
+  can be specified if you desire to use more than two channels.
+
+max_channels=arg
+  This option is applicable while using ``multichannel`` feature. max_channels
+  option allows the user to specify the number of transport connections that
+  should be establised between client and server up to a limit of 16. Using
+  this option implicitly enables the ``multichannel`` feature.
+  If max_channels option not specified, ``multichannel`` feature defaults to
+  using 2 connections.
+
+closetimeo=arg
+  The maximum time (in seconds) that the CIFS client defers sending the final
+  SMB3 close when the client has a handle lease on the file.
+
+  By default, ``closetimeo`` is set to 1 second and can hold values between 0
+  and a maximum value of 2^30 \* HZ.
+
 noposixpaths
   If unix extensions are enabled on a share, then the client will
   typically allow filenames to include any character besides '/' in a
@@ -597,6 +634,11 @@ noposixpaths
 
 posixpaths
   Inverse of ``noposixpaths`` .
+
+compress
+  **EXPERIMENTAL FEATURE** Enables over-the-wire message compression for
+  SMB 3.1.1 or higher mounts. Mount fails when compress is on and ``vers`` is
+  set to a version lower than 3.1.1.
 
 vers=arg
   SMB protocol version. Allowed values are:
@@ -623,6 +665,10 @@ vers=arg
   the highest possible version greater than or equal to ``2.1``. In
   kernels prior to v4.13, the default was ``1.0``. For kernels
   between v4.13 and v4.13.5 the default is ``3.0``.
+
+sloppy
+  Allows the system to ignore any unrecognized mount options that follow this
+  option instead of failing to mount altogether.
 
 --verbose
   Print additional debugging information for the mount. Note that this
@@ -750,8 +796,19 @@ bits, and POSIX ACL as user authentication model. This is the most
 common authentication model for CIFS servers and is the one used by
 Windows.
 
-Support for this requires both CIFS_XATTR and CIFS_ACL support in the
-CIFS configuration options when building the cifs module.
+Support for this requires cifs kernel module built with both
+``CONFIG_CIFS_XATTR`` and ``CONFIG_CIFS_ACL`` options enabled.  Since
+Linux 5.3, ``CONFIG_CIFS_ACL`` option no longer exists as CIFS/NTFS
+ACL support is always built into cifs kernel module.
+
+Most distribution kernels will already have those options enabled by
+default, but you can still check if they are enabled with::
+
+  cat /lib/modules/$(uname -r)/build/.config
+
+Alternatively, if kernel is configured with ``CONFIG_IKCONFIG_PROC``::
+
+  zcat /proc/config.gz
 
 A CIFS/NTFS ACL is mapped to file permission bits using an algorithm
 specified in the following Microsoft TechNet document:
@@ -761,10 +818,10 @@ specified in the following Microsoft TechNet document:
 In order to map SIDs to/from UIDs and GIDs, the following is required:
 
 - a kernel upcall to the ``cifs.idmap`` utility set up via request-key.conf(5)
-- winbind support configured via nsswitch.conf(5) and smb.conf(5)
+- winbind or sssd support configured via nsswitch.conf(5)
 
-Please refer to the respective manpages of cifs.idmap(8) and
-winbindd(8) for more information.
+Please refer to the respective manpages of cifs.idmap(8), winbindd(8)
+and sssd(8) for more information.
 
 Security descriptors for a file object can be retrieved and set
 directly using extended attribute named ``system.cifs_acl``. The
@@ -780,10 +837,10 @@ Some of the things to consider while using this mount option:
 - The mapping between a CIFS/NTFS ACL and POSIX file permission bits
   is imperfect and some ACL information may be lost in the
   translation.
-- If either upcall to cifs.idmap is not setup correctly or winbind is
-  not configured and running, ID mapping will fail. In that case uid
-  and gid will default to either to those values of the share or to
-  the values of uid and/or gid mount options if specified.
+- If either upcall to cifs.idmap is not setup correctly or winbind or
+  sssd is not configured and running, ID mapping will fail. In that
+  case uid and gid will default to either to those values of the share
+  or to the values of uid and/or gid mount options if specified.
 
 **********************************
 ACCESSING FILES WITH BACKUP INTENT
