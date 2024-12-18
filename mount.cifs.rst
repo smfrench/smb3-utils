@@ -285,6 +285,14 @@ handlecache
 nohandlecache
   Disable caching of the share root directory handle.
 
+max_cached_dirs=arg
+  The maximum number of cached directories per share. Directories are cached locally
+  when a lease is granted by the server, which improves performance by reducing network
+  traffic.
+
+  By default, ``max_cached_dirs`` is set to 16 and can hold values between 0
+  and a maximum value of 2^32 - 1.
+
 handletimeout=arg
   The time (in milliseconds) for which the server should reserve the handle after
   a failover waiting for the client to reconnect.  When mounting with
@@ -393,6 +401,19 @@ sec=arg
 seal
   Request encryption at the SMB layer. The encryption algorithm used
   is AES-128-CCM. Requires SMB3 or above (see ``vers``).
+
+esize=arg
+  The minimum size (in bytes) of an encrypted read response at which the
+  client will offload decryption to a separate worker thread. This will work
+  when the number of in-flight requests are greater than 1.
+
+  Decryption of large encrypted read responses can be computationally expensive
+  and, when multiple reads are in flight, offloading the work can improve
+  performance.
+
+  The default is ``esize=0``, which means that all encrypted read responses are
+  decrypted without offload and can be set up to the maximum buffer size, which
+  can range from 8192 to 130048 bytes, and defaults to 16384 bytes.
 
 rdma
   Connect directly to the server using SMB Direct via a RDMA
@@ -600,7 +621,8 @@ actimeo=arg
   the server. Longer timeouts mean a reduced number of calls to the
   server but looser cache coherency. The ``actimeo`` value is a positive
   integer that can hold values between 0 and a maximum value of 2^30 \*
-  HZ (frequency of timer interrupt) setting.
+  HZ (frequency of timer interrupt) setting. Setting it to 0 disables 
+  caching.
 
 acregmax=arg
   The maximum time (in seconds) that the CIFS client caches attributes of a
