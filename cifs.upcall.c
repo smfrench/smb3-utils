@@ -1708,15 +1708,27 @@ int main(const int argc, char *const argv[])
 	if (uid == 0)
 		env_probe = false;
 
-	/*
-	 * FIXME: this only works if we haven't switched PID namespaces.
-	 * If we did, /proc/arg->pid/ might not exist, or worse, point to something else.
-	 */
-	rc = get_uidgid(arg->pid, &uid, &gid);
-	if (rc) {
-		syslog(LOG_ERR, "get_uidgid (NS): %s", strerror(errno));
-		rc = 1;
-		goto out;
+	gid = INVALID_UIDGID;
+	if (arg->uid == 0) {
+		/*
+		 * By now, 'uid' is either 0 or 'arg->creduid'.
+		 * In either case, we just need to set GID=0 to make setgid() happy, as kerberos
+		 * credential cache lookup relies only on UID anyway (in case arg->creduid != 0).
+		 */
+		gid = 0;
+	} else {
+		/*
+		 * For any other case, we need to get UID/GID from procfs.
+		 *
+		 * FIXME: this only works if we haven't switched PID namespaces.
+		 * If we did, /proc/arg->pid/ might not exist, or worse, point to something else.
+		 */
+		rc = get_uidgid(arg->pid, &uid, &gid);
+		if (rc) {
+			syslog(LOG_ERR, "get_uidgid (NS): %s", strerror(errno));
+			rc = 1;
+			goto out;
+		}
 	}
 
 	rc = setgid(gid);
